@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
+
 
 class CaregiverHomePage extends StatefulWidget {
   const CaregiverHomePage({super.key});
@@ -22,8 +24,84 @@ class _CaregiverHomePageState extends State<CaregiverHomePage> {
   String? userName;
   int? caregiverId;
 
+  Timer? _reminderTimer;
+  DateTime? _lastReminderDate;
+
+  @override
+  void initState() {
+  super.initState();
+  _startReminderTimer();
+}
+
+void _startReminderTimer() {
+  _reminderTimer?.cancel();
+
+  // Check every 30 seconds (you can change to 1 minute if you prefer)
+  _reminderTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+    // If no schedule has been saved yet, do nothing
+    if (_savedScheduleSummary == null) return;
+
+    final now = DateTime.now();
+
+    // If we already showed a reminder today, don't show again
+    if (_lastReminderDate != null &&
+        _lastReminderDate!.year == now.year &&
+        _lastReminderDate!.month == now.month &&
+        _lastReminderDate!.day == now.day) {
+      return;
+    }
+
+    // Compare current time to scheduled time
+    if (now.hour == _selectedTime.hour &&
+        now.minute == _selectedTime.minute) {
+      _lastReminderDate = now;
+      _showPillReminder();
+    }
+  });
+}
+
+void _showPillReminder() {
+  final pillName = _pillNameController.text.isEmpty
+      ? 'your pill'
+      : _pillNameController.text;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Pill reminder'),
+        content: Text('It is time to take $pillName.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // close dialog
+            },
+            child: const Text('Later'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // close dialog
+              // Go directly to scan page, with the expected pill name
+              Navigator.pushNamed(
+                context,
+                '/user/scan',
+                arguments: pillName,
+              );
+            },
+            child: const Text('Scan my pill'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+
+
   @override
   void dispose() {
+    _reminderTimer?.cancel();
     _caregiverNameController.dispose();
     _caregiverEmailController.dispose();
     _pillNameController.dispose();
@@ -71,45 +149,51 @@ class _CaregiverHomePageState extends State<CaregiverHomePage> {
   }
 
   Future<void> _saveAll() async {
-    // 👇 This was the error: caregiverId was not defined.
-    if (caregiverId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No caregiver id (prototype).')),
-      );
-      return;
-    }
+  if (caregiverId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No caregiver id (prototype).')),
+    );
+    return;
+  }
 
-    // Format time as HH:mm
-    final timeStr =
-        '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
+  final timeStr =
+      '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
 
-    final uri =
-        Uri.parse('http://localhost:3000/caregivers/$caregiverId/schedule');
+  final uri =
+      Uri.parse('http://localhost:3000/caregivers/$caregiverId/schedule');
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Saving to backend...')),
+  );
+
+  final response = await http.post(
+    uri,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'pillName': _pillNameController.text,
+      'time': timeStr,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    setState(() {
+      _savedScheduleSummary =
+          'Pill "${_pillNameController.text}" at ${_selectedTime.format(context)}';
+
+      // 🔁 reset last reminder so today's new schedule can trigger again
+      _lastReminderDate = null;
+    });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Saving to backend...')),
+      const SnackBar(content: Text('Schedule saved. Reminder armed.')),
     );
-
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'pillName': _pillNameController.text,
-        'time': timeStr,
-      }),
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${response.body}')),
     );
-
-    if (response.statusCode == 200) {
-      setState(() {
-        _savedScheduleSummary =
-            'Pill "${_pillNameController.text}" at ${_selectedTime.format(context)}';
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${response.body}')),
-      );
-    }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

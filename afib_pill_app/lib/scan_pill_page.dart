@@ -97,11 +97,11 @@ class _ScanPillPageState extends State<ScanPillPage> {
               children: [
                 ElevatedButton(
                   onPressed: () => _simulateAI(correct: true),
-                  child: const Text('Simulate CORRECT pill'),
+                  child: const Text('AI says: RED'),
                 ),
                 ElevatedButton(
                   onPressed: () => _simulateAI(correct: false),
-                  child: const Text('Simulate WRONG pill'),
+                  child: const Text('AI says: BLUE'),
                 ),
               ],
             ),

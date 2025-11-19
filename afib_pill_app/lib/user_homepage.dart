@@ -5,9 +5,10 @@ class UserHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // For the prototype we hardcode what the next pill is
-    const nextPill = 'Red pill';
-    const nextTime = '17:00';
+    // Read expected pill name from arguments (passed from CaregiverHomePage)
+    final args = ModalRoute.of(context)?.settings.arguments as String?;
+    final nextPill = args ?? 'Red pill'; // fallback
+    const nextTime = '17:00'; // still hardcoded for now
 
     return Scaffold(
       appBar: AppBar(title: const Text('Patient – Pills')),
@@ -22,13 +23,16 @@ class UserHomePage extends StatelessWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              const Text('Next pill: $nextPill'),
+              Text('Next pill: $nextPill'),
               const Text('Time: $nextTime'),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/user/scan',
-                      arguments: nextPill);
+                  Navigator.pushNamed(
+                    context,
+                    '/user/scan',
+                    arguments: nextPill, // 🔹 pass expected pill to scan page
+                  );
                 },
                 child: const Text('Scan pill now'),
               ),
