@@ -95,6 +95,41 @@ app.post('/intake', (req, res) => {
   );
 });
 
+// Get latest schedule for a given "patient" (we use caregivers table id)
+app.get('/caregivers/:id/schedule', (req, res) => {
+  const caregiverId = req.params.id;
+
+  db.get(
+    `SELECT pill_name, time
+     FROM schedules
+     WHERE caregiver_id = ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [caregiverId],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!row) return res.status(404).json({ error: 'No schedule found' });
+      res.json(row);
+    }
+  );
+});
+
+// Get all wrong intake events (for prototype, we list all)
+app.get('/intake/alerts', (req, res) => {
+  db.all(
+    `SELECT pill_name, expected_time, detected_pill, created_at
+     FROM intake_events
+     WHERE is_correct = 0
+     ORDER BY created_at DESC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
+
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);

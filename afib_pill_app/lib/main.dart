@@ -3,6 +3,8 @@ import 'caregiver_register_page.dart';
 import 'caregiver_homepage.dart';
 import 'user_homepage.dart';
 import 'scan_pill_page.dart';
+import 'caregiver_portal_register_page.dart';
+import 'caregiver_dashboard_page.dart';
 
 
 void main() {
@@ -20,11 +22,18 @@ class AFibPillApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LandingPage(),
+
+        // PATIENT flow (already working)
         '/caregiver/register': (context) => const CaregiverRegisterPage(),
         '/caregiver/home': (context) => const CaregiverHomePage(),
         '/user/home': (context) => const UserHomePage(),
         '/user/scan': (context) => const ScanPillPage(),
-      },
+
+        // CAREGIVER portal flow (NEW)
+        '/caregiver/portal/register': (context) =>
+          const CaregiverPortalRegisterPage(),
+        '/caregiver/dashboard': (context) => const CaregiverDashboardPage(),
+  },
     );
   }
 }
@@ -46,18 +55,19 @@ class LandingPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/caregiver/register');
-              },
-              child: const Text('Caregiver / Patient setup'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/user/home');
-              },
-              child: const Text('User (Patient)'),
-            ),
+  onPressed: () {
+    Navigator.pushNamed(context, '/caregiver/register'); // Patient registration
+  },
+  child: const Text('Patient'),
+),
+const SizedBox(height: 12),
+ElevatedButton(
+  onPressed: () {
+    Navigator.pushNamed(context, '/caregiver/portal/register'); // Caregiver portal
+  },
+  child: const Text('Caregiver'),
+),
+
           ],
         ),
       ),
